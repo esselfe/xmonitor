@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <signal.h>
 #include <time.h>
 #include <sys/sysinfo.h>
 #include <X11/Xlib.h>
@@ -18,18 +17,10 @@ unsigned int mem_pos_x = 50, mem_pos_y = 20,
 
 struct history mem_history;
 
-void XmonitorExit(void) {
-	XClearArea(display, window, 10, 10, 400, 1, False);
-}
-
-void XmonitorSignal(int signum) {
-	XClearArea(display, window, 10, 10, 400, 1, False);
-	exit(0);
-}
-
 void DrawMem(void) {
 	XClearArea(display, window, mem_pos_x, mem_pos_y, mem_width, mem_height, False);
 
+	// Draw contour lines
 	// top
 	XDrawLine(display, window, gc, mem_pos_x, mem_pos_y,
 		mem_pos_x + mem_width, mem_pos_y);
@@ -62,9 +53,6 @@ void DrawMem(void) {
 int main(int argc, char **argv) {
 	printf("xmonitor started\n");
 
-	atexit(XmonitorExit);
-	signal(SIGINT, XmonitorSignal);
-
 	tp = t0 = time(NULL);
 
 	display = XOpenDisplay(NULL);
@@ -90,11 +78,8 @@ int main(int argc, char **argv) {
 
 	HistoryInit(mem_width);
 
-	int cnt = 0;
 	struct sysinfo sinfo;
 	while (1) {
-		XDrawLine(display, window, gc, 10, 10, cnt++, 10);
-
 		t0 = time(NULL);
 		if (t0 > tp) {
 			tp = t0;
@@ -109,14 +94,8 @@ int main(int argc, char **argv) {
 			DrawMem();
 		}
 
-
-		if (cnt >= 400) {
-			cnt = 0;
-			XClearArea(display, window, 10, 10, 400, 1, False);
-		}
-
 		XFlush(display);
-		usleep(1000);
+		usleep(10000);
 	}
 
 	XCloseDisplay(display);
