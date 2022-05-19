@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <signal.h>
 #include <sys/sysinfo.h>
 #include <X11/Xlib.h>
 
@@ -16,6 +17,13 @@ unsigned int mem_pos_x = 50, mem_pos_y = 20,
 	mem_width = 40, mem_height = 40;
 
 struct history mem_history;
+
+void XmonitorSignal(int signum) {
+	Display *dsp = XOpenDisplay(NULL);
+	XClearArea(dsp, window, mem_pos_x, mem_pos_y, mem_width+1, mem_height+1, True);
+	XFlush(dsp);
+	exit(0);
+}
 
 void DrawMem(void) {
 	XClearArea(display, window, mem_pos_x, mem_pos_y, mem_width, mem_height, False);
@@ -52,6 +60,9 @@ void DrawMem(void) {
 
 int main(int argc, char **argv) {
 	printf("xmonitor started\n");
+
+	signal(SIGINT, XmonitorSignal);
+	signal(SIGTERM, XmonitorSignal);
 
 	tp = t0 = time(NULL);
 
