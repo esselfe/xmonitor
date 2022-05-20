@@ -10,10 +10,10 @@ struct history {
 	struct history_frame *first_frame, *last_frame;
 };
 
-extern struct history mem_history;
+extern struct history mem_history, swap_history;
 
-void HistoryInit(unsigned int size);
-void HistoryAdd(unsigned int used, unsigned int buffered);
-void HistoryPopFirst(void);
+void HistoryInit(struct history *hist, unsigned int size);
+void HistoryAdd(struct history *hist, unsigned int used, unsigned int buffered);
+void HistoryPopFirst(struct history *hist);
 
 #endif /* XMONITOR_H */

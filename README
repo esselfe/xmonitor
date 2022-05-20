@@ -1,9 +1,9 @@
 
 xmonitor is a system monitor written in the C programming language.
-As of now it only renders a memory meter directly on the desktop,
+As of now it can render a memory and a swap meter directly on the desktop,
 aka 'root window', using the X11/Xorg/Xlib interface
 
-Compiling the source into an executable form is simple, just type 'make'
+Compiling the source into an executable program is simple, just type 'make'
 in the source directory and copy xmonitor where you see fit.
 
 Enjoy!
