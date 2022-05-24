@@ -134,10 +134,12 @@ int main(int argc, char **argv) {
 			HistoryPopFirst(&mem_history);
 			HistoryAdd(&mem_history, value, 0);
 
-			bytes_per_pixel = sinfo.totalswap / swap_height;
-			value = (sinfo.totalswap - sinfo.freeswap) / bytes_per_pixel;
-			HistoryPopFirst(&swap_history);
-			HistoryAdd(&swap_history, value, 0);
+			if (sinfo.totalswap > 0) {
+				bytes_per_pixel = sinfo.totalswap / swap_height;
+				value = (sinfo.totalswap - sinfo.freeswap) / bytes_per_pixel;
+				HistoryPopFirst(&swap_history);
+				HistoryAdd(&swap_history, value, 0);
+			}
 
 			Draw();
 		}
