@@ -142,9 +142,9 @@ int main(int argc, char **argv) {
 			}
 
 			Draw();
+			XFlush(display);
 		}
 
-		XFlush(display);
 		usleep(10000);
 	}
 
