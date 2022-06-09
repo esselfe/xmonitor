@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
 			
 			sysinfo(&sinfo);
 			unsigned int bytes_per_pixel = sinfo.totalram / mem_height;
-			unsigned int value = 
+			unsigned long value = 
 				(sinfo.totalram - sinfo.freeram - sinfo.bufferram) / bytes_per_pixel;
 			HistoryPopFirst(&mem_history);
 			HistoryAdd(&mem_history, value, 0);

@@ -31,7 +31,7 @@ void HistoryPopFirst(struct history *hist) {
 	free(frame);
 }
 
-void HistoryAdd(struct history *hist, unsigned int used, unsigned int buffered) {
+void HistoryAdd(struct history *hist, unsigned long used, unsigned long buffered) {
 	struct history_frame *frame = malloc(sizeof(struct history_frame));
 	frame->prev = hist->last_frame;
 	frame->next = NULL;

@@ -13,7 +13,7 @@ struct history {
 extern struct history mem_history, swap_history;
 
 void HistoryInit(struct history *hist, unsigned int size);
-void HistoryAdd(struct history *hist, unsigned int used, unsigned int buffered);
+void HistoryAdd(struct history *hist, unsigned long used, unsigned long buffered);
 void HistoryPopFirst(struct history *hist);
 
 #endif /* XMONITOR_H */
