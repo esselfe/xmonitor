@@ -140,6 +140,10 @@ int main(int argc, char **argv) {
 				HistoryPopFirst(&swap_history);
 				HistoryAdd(&swap_history, value, 0);
 			}
+			else {
+				HistoryPopFirst(&swap_history);
+				HistoryAdd(&swap_history, 0, 0);
+			}
 
 			Draw();
 			XFlush(display);
