@@ -10,7 +10,7 @@
 
 Display *display;
 Window window;
-GC gc;
+GC gc, gc_buffers;
 time_t t0, tp;
 
 unsigned int mem_pos_x = 50, mem_pos_y = 20,
@@ -66,6 +66,9 @@ void Draw(void) {
 			XDrawLine(display, window, gc, 
 				mem_pos_x + cnt, mem_pos_y + mem_height,
 				mem_pos_x + cnt, mem_pos_y + (mem_height - frame->used));
+			XDrawLine(display, window, gc_buffers,
+				mem_pos_x + cnt, mem_pos_y + mem_height - frame->used,
+				mem_pos_x + cnt, mem_pos_y + mem_height - frame->used - frame->buffered);
 		}
 		
 		if (frame->next)
@@ -118,6 +121,18 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+	gcv.foreground = 0x808080;
+	gcv.background = 0x101010;
+	gcv.line_width = 1;
+	gcv.line_style = LineSolid;
+	gc_buffers = XCreateGC(display, window,
+				GCForeground|GCBackground|GCLineWidth|GCLineStyle,
+				&gcv);
+	if (gc_buffers == NULL) {
+		printf("xmonitor error: Cannot create graphical context!\n");
+		return 1;
+	}
+
 	HistoryInit(&mem_history, mem_width);
 	HistoryInit(&swap_history, swap_width);
 
@@ -130,9 +145,10 @@ int main(int argc, char **argv) {
 			sysinfo(&sinfo);
 			unsigned int bytes_per_pixel = sinfo.totalram / mem_height;
 			unsigned long value = 
-				(sinfo.totalram - sinfo.freeram - sinfo.bufferram) / bytes_per_pixel;
+				(sinfo.totalram - sinfo.freeram - sinfo.bufferram) / bytes_per_pixel,
+				value2 = sinfo.bufferram / bytes_per_pixel;
 			HistoryPopFirst(&mem_history);
-			HistoryAdd(&mem_history, value, 0);
+			HistoryAdd(&mem_history, value, value2);
 
 			if (sinfo.totalswap > 0) {
 				bytes_per_pixel = sinfo.totalswap / swap_height;
