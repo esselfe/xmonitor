@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
+#include <errno.h>
 #include <time.h>
 #include <signal.h>
 #include <sys/sysinfo.h>
@@ -12,7 +14,11 @@ Display *display;
 Window window;
 GC gc, gc_buffers;
 time_t t0, tp;
-
+// May require changes on other systems:
+char *temp_file = "/sys/class/hwmon/hwmon2/temp3_input";
+XTextItem text_temp;
+int text_temp_len;
+unsigned int text_temp_pos_x = 4, text_temp_pos_y = 12;
 unsigned int mem_pos_x = 50, mem_pos_y = 20,
 	mem_width = 40, mem_height = 40,
 	swap_pos_x = 100, swap_pos_y = 20,
@@ -24,6 +30,7 @@ void XmonitorSignal(int signum) {
 	Display *dsp = XOpenDisplay(NULL);
 	XClearArea(dsp, window, mem_pos_x, mem_pos_y, mem_width+1, mem_height+1, False);
 	XClearArea(dsp, window, swap_pos_x, swap_pos_y, swap_width+1, swap_height+1, False);
+	XClearArea(dsp, window, text_temp_pos_x, text_temp_pos_y-10, 100, 10, False);
 	XFlush(dsp);
 	exit(0);
 }
@@ -31,6 +38,9 @@ void XmonitorSignal(int signum) {
 void Draw(void) {
 	XClearArea(display, window, mem_pos_x, mem_pos_y, mem_width, mem_height, False);
 	XClearArea(display, window, swap_pos_x, swap_pos_y, swap_width, swap_height, False);
+
+	XClearArea(display, window, text_temp_pos_x, text_temp_pos_y-10, 100, 10, False);
+	XDrawText(display, window, gc, text_temp_pos_x, text_temp_pos_y, &text_temp, 1);
 
 	// Draw contour lines
 	// top
@@ -92,6 +102,28 @@ void Draw(void) {
 	}
 }
 
+void UpdateTemp(void) {
+	FILE *fp = fopen(temp_file, "r");
+	if (fp == NULL) {
+		printf("xmonitor error: Cannot open %s: %s\n", temp_file,
+			strerror(errno));
+		return;
+	}
+
+	char *line = malloc(64);
+	memset(line, 0, 64);
+	size_t line_size = 64;
+	ssize_t nread = getline(&line, &line_size, fp);
+	unsigned int val = 0;
+	if (nread > 0) {
+		val = atoi(line)/1000;
+		sprintf(text_temp.chars, "%u", val);
+		text_temp.nchars = strlen(text_temp.chars);
+	}
+
+	fclose(fp);
+}
+
 int main(int argc, char **argv) {
 	printf("xmonitor started\n");
 
@@ -133,6 +165,12 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
+	text_temp_len = 4;
+	text_temp.chars = malloc(text_temp_len);
+	sprintf(text_temp.chars, "000");
+	text_temp.nchars = strlen(text_temp.chars);
+	text_temp.delta = 0;
+
 	HistoryInit(&mem_history, mem_width);
 	HistoryInit(&swap_history, swap_width);
 
@@ -141,6 +179,8 @@ int main(int argc, char **argv) {
 		t0 = time(NULL);
 		if (t0 > tp) {
 			tp = t0;
+
+			UpdateTemp();
 			
 			sysinfo(&sinfo);
 			unsigned int bytes_per_pixel = sinfo.totalram / mem_height;
