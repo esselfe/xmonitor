@@ -16,12 +16,13 @@ GC gc, gc_buffers;
 time_t t0, tp;
 // May require changes on other systems:
 char *temp_file = "/sys/class/hwmon/hwmon2/temp3_input";
+FILE *temp_fp;
 XTextItem text_temp;
 int text_temp_len;
 unsigned int text_temp_pos_x = 4, text_temp_pos_y = 12;
-unsigned int mem_pos_x = 50, mem_pos_y = 20,
+unsigned int mem_pos_x = 10, mem_pos_y = 20,
 	mem_width = 40, mem_height = 40,
-	swap_pos_x = 100, swap_pos_y = 20,
+	swap_pos_x = 60, swap_pos_y = 20,
 	swap_width = 40, swap_height = 40;
 
 struct history mem_history, swap_history;
@@ -103,17 +104,13 @@ void Draw(void) {
 }
 
 void UpdateTemp(void) {
-	FILE *fp = fopen(temp_file, "r");
-	if (fp == NULL) {
-		printf("xmonitor error: Cannot open %s: %s\n", temp_file,
-			strerror(errno));
+	if (temp_fp == NULL)
 		return;
-	}
 
 	char *line = malloc(64);
 	memset(line, 0, 64);
 	size_t line_size = 64;
-	ssize_t nread = getline(&line, &line_size, fp);
+	ssize_t nread = getline(&line, &line_size, temp_fp);
 	unsigned int val = 0;
 	if (nread > 0) {
 		val = atoi(line)/1000;
@@ -121,7 +118,10 @@ void UpdateTemp(void) {
 		text_temp.nchars = strlen(text_temp.chars);
 	}
 
-	fclose(fp);
+	fseek(temp_fp, 0, SEEK_SET);
+	fflush(temp_fp);
+
+	free(line);
 }
 
 int main(int argc, char **argv) {
@@ -129,12 +129,16 @@ int main(int argc, char **argv) {
 
 	signal(SIGINT, XmonitorSignal);
 	signal(SIGTERM, XmonitorSignal);
+	signal(SIGQUIT, XmonitorSignal);
 
 	tp = t0 = time(NULL);
 
+	temp_fp = fopen(temp_file, "r");
+	if (temp_fp == NULL)
+		printf("xmonitor error: Cannot open %s: %s\n", temp_file, strerror(errno));
+
 	display = XOpenDisplay(NULL);
-	if (display == NULL) {
-		printf("xmonitor error: Cannot open X display!\n");
+	if (display == NULL) { printf("xmonitor error: Cannot open X display!\n");
 		return 1;
 	}
 
