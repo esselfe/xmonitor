@@ -1,6 +1,10 @@
 #ifndef XMONITOR_H
 #define XMONITOR_H 1
 
+#define _NET_WM_STATE_REMOVE        0	// remove/unset property
+#define _NET_WM_STATE_ADD           1	// add/set property
+#define _NET_WM_STATE_TOGGLE        2	// toggle property
+
 struct history_frame {
 	struct history_frame *prev, *next;
 	unsigned long used, buffered;
