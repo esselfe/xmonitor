@@ -6,11 +6,25 @@
 #include <time.h>
 #include <signal.h>
 #include <sys/sysinfo.h>
+#include <getopt.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/Xlib.h>
 
 #include "xmonitor.h"
+
+const char *xmonitor_version_string = "0.2.0";
+
+static const struct option long_options[] = {
+	{"help", no_argument, NULL, 'h'},
+	{"version", no_argument, NULL, 'V'},
+	{"position-x", required_argument, NULL, 'X'},
+	{"position-y", required_argument, NULL, 'Y'},
+	{"width", required_argument, NULL, 'W'},
+	{"height", required_argument, NULL, 'H'},
+	{NULL, 0, NULL, 0}
+};
+static const char *short_options = "hVX:Y:W:H:";
 
 Display *display;
 Window window, window_root;
@@ -29,6 +43,12 @@ unsigned int mem_pos_x = 10, mem_pos_y = 20,
 	swap_width = 40, swap_height = 40;
 
 struct history mem_history, swap_history;
+
+void ShowHelp(void) {
+	printf("Usage: xmonitor { -h/--help | -V/--version\n");
+	printf("                  -X/--position-x NUM | -Y/--position-y NUM\n");
+	printf("                  -W/--width NUM | -H/--height NUM }\n");
+}
 
 void XmonitorSignal(int signum) {
 	Display *dsp = XOpenDisplay(NULL);
@@ -128,11 +148,50 @@ void UpdateTemp(void) {
 }
 
 int main(int argc, char **argv) {
-	printf("xmonitor started\n");
-
 	signal(SIGINT, XmonitorSignal);
 	signal(SIGTERM, XmonitorSignal);
 	signal(SIGQUIT, XmonitorSignal);
+
+	// Parse program options and arguments
+	int c;
+	while (1) {
+		c = getopt_long(argc, argv, short_options, long_options, NULL);
+		if (c == -1)
+			break;
+
+		switch (c) {
+		case 'h':
+			ShowHelp();
+			exit(0);
+			break;
+		case 'V':
+			printf("xmonitor %s\n", xmonitor_version_string);
+			exit(0);
+			break;
+		case 'X':
+			if (optarg != NULL && strlen(optarg) > 0)
+				winX = atoi(optarg);
+
+			break;
+		case 'Y':
+			if (optarg != NULL && strlen(optarg) > 0)
+				winY = atoi(optarg);
+
+			break;
+		case 'W':
+			if (optarg != NULL && strlen(optarg) > 0)
+				winW = atoi(optarg);
+
+			break;
+		case 'H':
+			if (optarg != NULL && strlen(optarg) > 0)
+				winH = atoi(optarg);
+
+			break;
+		}
+	}
+
+	printf("xmonitor started\n");
 
 	tp = t0 = time(NULL);
 
