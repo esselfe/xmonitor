@@ -6,12 +6,14 @@
 #include <time.h>
 #include <signal.h>
 #include <sys/sysinfo.h>
+#include <X11/Xatom.h>
+#include <X11/Xutil.h>
 #include <X11/Xlib.h>
 
 #include "xmonitor.h"
 
 Display *display;
-Window window;
+Window window, window_root;
 GC gc, gc_buffers;
 time_t t0, tp;
 // May require changes on other systems:
@@ -19,6 +21,7 @@ char *temp_file = "/sys/class/hwmon/hwmon2/temp3_input";
 FILE *temp_fp;
 XTextItem text_temp;
 int text_temp_len;
+int winX = 10, winY = 10, winW = 120, winH = 100;
 unsigned int text_temp_pos_x = 4, text_temp_pos_y = 12;
 unsigned int mem_pos_x = 10, mem_pos_y = 20,
 	mem_width = 40, mem_height = 40,
@@ -142,7 +145,27 @@ int main(int argc, char **argv) {
 		return 1;
 	}
 
-	window = XDefaultRootWindow(display);
+	Screen *screen = XDefaultScreenOfDisplay(display);
+	int screen_num = XScreenNumberOfScreen(screen);
+	int screen_depth = XDefaultDepthOfScreen(screen);
+	window_root = XDefaultRootWindow(display);
+
+	XSetWindowAttributes wattr;
+	//wattr.background_pixel = BlackPixel(display, screen_num);
+	//wattr.background_pixel = 0xaaaa00;
+	wattr.background_pixel = 0x081018;
+	window = XCreateWindow(display, window_root, winX, winY, winW, winH,
+		2, screen_depth, InputOutput, DefaultVisual(display, screen_num),
+		CWBackPixel, &wattr);
+
+	XSizeHints wmsize;
+	wmsize.flags = USPosition | USSize;
+	XSetWMNormalHints(display, window, &wmsize);
+
+	XWMHints wmhint;
+	wmhint.initial_state = NormalState;
+	wmhint.flags = StateHint;
+	XSetWMHints(display, window, &wmhint);
 
 	XGCValues gcv;
 	gcv.foreground = 0xababab;
@@ -174,6 +197,28 @@ int main(int argc, char **argv) {
 	sprintf(text_temp.chars, "000");
 	text_temp.nchars = strlen(text_temp.chars);
 	text_temp.delta = 0;
+
+	XMapWindow(display, window);
+
+	Atom window_type = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
+	long value = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DOCK", False);
+	XChangeProperty(display, window, window_type,
+		XA_ATOM, 32, PropModeReplace, (unsigned char *)&value, 1);
+
+	Atom wmStateSticky = XInternAtom(display, "_NET_WM_STATE_STICKY", 1);
+	Atom wmNetWmState = XInternAtom(display, "_NET_WM_STATE", 1);
+	XClientMessageEvent xclient;
+	memset(&xclient, 0, sizeof(xclient));
+	xclient.type = ClientMessage;
+	xclient.window = window;
+	xclient.message_type = wmNetWmState;
+	xclient.format = 32;
+	xclient.data.l[0] = _NET_WM_STATE_ADD;
+	xclient.data.l[1] = wmStateSticky;
+	xclient.data.l[3] = 0;
+	xclient.data.l[4] = 0;
+	XSendEvent(display, window_root, False,
+		SubstructureRedirectMask | SubstructureNotifyMask, (XEvent *)&xclient);
 
 	HistoryInit(&mem_history, mem_width);
 	HistoryInit(&swap_history, swap_width);
