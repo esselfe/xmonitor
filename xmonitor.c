@@ -13,7 +13,7 @@
 
 #include "xmonitor.h"
 
-const char *xmonitor_version_string = "0.2.0";
+const char *xmonitor_version_string = "0.2.1";
 
 static const struct option long_options[] = {
 	{"help", no_argument, NULL, 'h'},
@@ -132,7 +132,7 @@ void UpdateTemp(void) {
 
 	char *line = malloc(64);
 	memset(line, 0, 64);
-	size_t line_size = 64;
+	size_t line_size = 63;
 	ssize_t nread = getline(&line, &line_size, temp_fp);
 	unsigned int val = 0;
 	if (nread > 0) {
@@ -206,16 +206,21 @@ int main(int argc, char **argv) {
 
 	Screen *screen = XDefaultScreenOfDisplay(display);
 	int screen_num = XScreenNumberOfScreen(screen);
-	int screen_depth = XDefaultDepthOfScreen(screen);
 	window_root = XDefaultRootWindow(display);
+	XVisualInfo vinfo;
+	if (!XMatchVisualInfo(display, screen_num, 32, TrueColor, &vinfo)) {
+		fprintf(stderr, "xmonitor error: 32-bit visual not found, exiting.\n");
+		exit(1);
+	}
 
 	XSetWindowAttributes wattr;
-	//wattr.background_pixel = BlackPixel(display, screen_num);
-	//wattr.background_pixel = 0xaaaa00;
-	wattr.background_pixel = 0x081018;
+	memset(&wattr, 0, sizeof(XSetWindowAttributes));
+	wattr.colormap = XCreateColormap(display, window_root, vinfo.visual, AllocNone);
+	wattr.background_pixel = 0;
+	wattr.border_pixel = 0;
 	window = XCreateWindow(display, window_root, winX, winY, winW, winH,
-		2, screen_depth, InputOutput, DefaultVisual(display, screen_num),
-		CWBackPixel, &wattr);
+		0, 32, InputOutput, vinfo.visual,
+		CWBackPixel | CWBorderPixel | CWColormap, &wattr);
 
 	XSizeHints wmsize;
 	wmsize.flags = USPosition | USSize;
@@ -258,6 +263,11 @@ int main(int argc, char **argv) {
 	text_temp.delta = 0;
 
 	XMapWindow(display, window);
+
+	Atom window_transparency = XInternAtom(display, "_NET_WM_WINDOW_OPACITY", False);
+	long opacity_value = 0xFFFFFFFF;
+	XChangeProperty(display, window, window_transparency,
+		XA_CARDINAL, 32, PropModeReplace, (unsigned char *)&opacity_value, 1);
 
 	Atom window_type = XInternAtom(display, "_NET_WM_WINDOW_TYPE", False);
 	long value = XInternAtom(display, "_NET_WM_WINDOW_TYPE_DOCK", False);
